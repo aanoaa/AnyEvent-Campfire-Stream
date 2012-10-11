@@ -1,6 +1,6 @@
 ### install ###
 
-    $ cpanm AnyEvent::Campfire::Stream    # not yet working
+    $ cpanm AnyEvent::Campfire::Stream
 
 ### usage ###
 
