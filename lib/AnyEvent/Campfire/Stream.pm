@@ -135,8 +135,7 @@ sub BUILD {
     };
 
     for my $room ( @{ $self->rooms } ) {
-        my $uri = URI->new(
-            sprintf "https://streaming.campfirenow.com/room/$room/live.json" );
+        my $uri = URI->new( "https://streaming.campfirenow.com/room/$room/live.json" );
         http_request(
             'GET',
             $uri,
