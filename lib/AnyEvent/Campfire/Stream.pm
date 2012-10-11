@@ -4,51 +4,17 @@ package AnyEvent::Campfire::Stream;
 use Moose;
 use namespace::autoclean;
 
+extends 'AnyEvent::Campfire';
+
 use AnyEvent;
 use AnyEvent::HTTP;
 use URI;
-use MIME::Base64;
 use JSON::XS;
-
-has 'token' => (
-    is  => 'rw',
-    isa => 'Str',
-);
-
-has 'authorization' => (
-    is         => 'ro',
-    isa        => 'Str',
-    lazy_build => 1,
-);
-
-has 'rooms' => ( is => 'rw' );
-
-has '_events' => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    default => sub { {} },
-);
-
-sub _build_authorization { 'Basic ' . encode_base64( shift->token . ':x' ) }
-
-sub emit {
-    my ( $self, $name ) = ( shift, shift );
-    if ( my $s = $self->_events->{$name} ) {
-        for my $cb (@$s) { $self->$cb(@_) }
-    }
-    return $self;
-}
-
-sub on {
-    my ( $self, $name, $cb ) = @_;
-    push @{ $self->{_events}{$name} ||= [] }, $cb;
-    return $cb;
-}
+use Try::Tiny;
 
 sub BUILD {
     my $self = shift;
 
-    $self->rooms( [ split( /,/, $self->rooms ) ] );
     if ( !$self->authorization || !scalar @{ $self->rooms } ) {
         print STDERR
           "Not enough parameters provided. I Need a token and rooms\n";
@@ -63,14 +29,21 @@ sub BUILD {
     my $on_json = sub {
         my $json = shift;
         if ( $json !~ /^\s*$/ ) {
-            $self->emit( 'stream', decode_json($json) );
+            my $data;
+            try {
+                $data = decode_json($json);
+                $self->emit( 'stream', $data );
+            }
+            catch {
+                $self->emit( 'error', "Campfire data parse error: $_" );
+            };
         }
     };
 
     my $on_header = sub {
         my ($hdr) = @_;
         if ( $hdr->{Status} !~ m/^2/ ) {
-            $self->emit( 'error', $hdr->{Status}, $hdr->{Reason} );
+            $self->emit( 'error', "$hdr->{Status}: $hdr->{Reason}" );
             return;
         }
         return 1;
@@ -135,7 +108,8 @@ sub BUILD {
     };
 
     for my $room ( @{ $self->rooms } ) {
-        my $uri = URI->new( "https://streaming.campfirenow.com/room/$room/live.json" );
+        my $uri =
+          URI->new("https://streaming.campfirenow.com/room/$room/live.json");
         http_request(
             'GET',
             $uri,
@@ -146,6 +120,8 @@ sub BUILD {
             $callback,
         );
     }
+
+    return $self;
 }
 
 __PACKAGE__->meta->make_immutable;
