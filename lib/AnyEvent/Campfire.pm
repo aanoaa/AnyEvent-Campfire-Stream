@@ -76,7 +76,7 @@ __PACKAGE__->meta->make_immutable;
 =head1 DESCRIPTION
 
 L<http://campfirenow.com/> API required C<token> to `authorization`.
-you can check it out on L<https://<username>.campfirenow.com/member/edit>.
+you can check it out on L<https://E<lt>usernameE<gt>.campfirenow.com/member/edit>.
 
 =head2 ATTRIBUTES
 
