@@ -39,7 +39,9 @@ sub _build_authorization {
 sub emit {
     my ( $self, $name ) = ( shift, shift );
     if ( my $s = $self->_events->{$name} ) {
-        for my $cb (@$s) { $self->$cb(@_) }
+        for my $cb (@$s) {
+            $self->$cb(@_) if $cb;
+        }
     }
     return $self;
 }
